@@ -1,20 +1,20 @@
 <?php namespace Cviebrock\Guzzle\Plugin\StripBom;
 
 
-use Guzzle\Common\Event;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use GuzzleHttp\Event\CompleteEvent;
+use GuzzleHttp\Event\SubscriberInterface;
 
 
 /**
  * Strips BOM from request body if it exists.  Helps with JSON/XML decoding of .NET service responses.
  */
-class StripBomPlugin implements EventSubscriberInterface
+class StripBomPlugin implements SubscriberInterface
 {
 
-	public static function getSubscribedEvents()
+	public function getEvents()
 	{
 		return array(
-			'request.complete' => 'onRequestComplete',
+			'complete' => ['onComplete'],
 		);
 	}
 
@@ -23,22 +23,22 @@ class StripBomPlugin implements EventSubscriberInterface
 	 *
 	 * @param Event $event
 	 */
-	public function onRequestComplete(Event $event)
+	public function onComplete(CompleteEvent $event)
 	{
-		if ($body = $event['response']->getBody()) {
+		if ($body = $event->getResponse()->getBody()) {
 			if (substr($body, 0, 3) === "\xef\xbb\xbf") {
 				// UTF-8
-				$event['response']->setBody(substr($body, 3));
+				$event->getResponse()->setBody(substr($body, 3));
 			} else if (substr($body, 0, 4) === "\xff\xfe\x00\x00" ||
 					   substr($body, 0, 4) === "\x00\x00\xfe\xff"
 			) {
 				// UTF-32
-				$event['response']->setBody(substr($body, 4));
+				$event->getResponse()->setBody(substr($body, 4));
 			} else if (substr($body, 0, 2) === "\xff\xfe" ||
 					   substr($body, 0, 2) === "\xfe\xff"
 			) {
 				// UTF-16
-				$event['response']->setBody(substr($body, 2));
+				$event->getResponse()->setBody(substr($body, 2));
 			}
 		}
 	}
